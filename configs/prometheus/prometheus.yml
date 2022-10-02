@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 5s
+  evaluation_interval: 15s
+scrape_configs:
+  - job_name: fogify
+    metrics_path: /metrics
+    scheme: http
+    consul_sd_configs:
+      - server: consul:8500
+        scheme: http
+  - job_name: spark
+    metrics_path: /metrics/executors/prometheus
+    static_configs:
+      - targets:
+          - ui:4040
+   

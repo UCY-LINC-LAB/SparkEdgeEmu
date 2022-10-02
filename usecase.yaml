@@ -1,0 +1,31 @@
+infrastructure:
+    devices_types:
+    - name: small-vm
+      processor:
+        cores: 4
+        clock_speed: 1.5GHz
+      memory: 4G
+      disk:
+        size: 32GB
+        read: 95MB/s
+        write: 90MB/s
+    connection_types:
+    - name: 5G
+      downlink:
+        data_rate: 90MBps
+        latency: 2ms
+        error_rate: 0.1%
+      uplink: 
+        data_rate: 90MBps
+        latency: 2ms
+        error_rate: 0.1%
+usecase:
+    usecase_type: smart_city
+    parameters:
+        num_of_regions: 1
+        num_of_devices_per_region: 3
+        cloudlet_server_per_rack: 1
+        cloudlet_number_of_racks: 1
+        edge_devices: [rpi3b, rpi4_2G]
+        edge_connection: 5G
+        cloudlets: small-vm

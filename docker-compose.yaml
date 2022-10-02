@@ -1,0 +1,139 @@
+version: '3.7'
+
+services:
+
+  ui:
+    image: sparkfog-lab
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - ./:/home/jovyan/work/project
+      - ${DATA_FOLDER}:/data
+      - ${DATA_FOLDER}:/home/jovyan/work/project/data
+    ports:
+      - 8888:8888
+    environment:
+      - "JUPYTER_ENABLE_LAB=yes"
+      - "GRANT_SUDO=yes"
+    networks:
+      - ether_net
+      - fogify_net
+    user: root
+  controller:
+    image: fogify:test # New fogify version but in testing mode
+    entrypoint: [ "python", "/code/fogify/main.py", "--controller"]
+    # [ "python", "/code/fogify/main.py", "--controller"] -> Production stack | [ "sh", "./controller-entrypoint.sh"] -> Development stack
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - ${DATA_FOLDER}:/data
+    ports:
+      - 5000:5000
+    extra_hosts:
+      - ${MANAGER_NAME}:${MANAGER_IP}
+    environment:
+      CPU_OVERSUBSCRIPTION_PERCENTAGE: ${CPU_OVERSUBSCRIPTION_PERCENTAGE}
+      RAM_OVERSUBSCRIPTION_PERCENTAGE: ${RAM_OVERSUBSCRIPTION_PERCENTAGE}
+      CPU_FREQ: ${CPU_FREQ}
+      HOST_IP: ${HOST_IP}
+      NAMESPACE_PATH: ${NAMESPACE_PATH}
+      SNIFFING_ENABLED: ${SNIFFING_ENABLED}
+      SNIFFING_PERIOD: ${SNIFFING_PERIOD}
+      CONNECTOR: ${CONNECTOR}
+      MANAGER_IP: ${MANAGER_IP}
+      MANAGER_NAME: ${MANAGER_NAME}
+    networks:
+      - fogify_net
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./configs/prometheus/:/etc/prometheus:Z
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9091:9090"
+    networks:
+      - fogify_net
+  consul:
+    image: consul
+    ports:
+      - 8400:8400
+      - 8500:8500
+      - 8600:53/udp
+    command: agent -server -client=0.0.0.0 -dev -node=node0 -bootstrap-expect=1 -data-dir=/tmp/consul
+    environment:
+      CONSUL_SVC_ADDR_AUTO: "true"
+    labels:
+      SERVICE_IGNORE: 'true'
+      CONSUL_SVC_ADDR_AUTO: "true"
+    networks:
+      - fogify_net
+  agent:
+    image: fogify:test # New fogify version but in testing mode
+    entrypoint: [ "python", "/code/fogify/main.py", "--agent", "--agent-ip", "${HOST_IP}"]
+    # [ "sh", "./agent-entrypoint.sh"] -> Production stack | [ "python", "/code/fogify/main.py", "--agent", "--agent-ip", "${HOST_IP}"] -> Development stack
+    extra_hosts:
+      - ${MANAGER_NAME}:${MANAGER_IP}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /proc/:${NAMESPACE_PATH}
+      - /var/run/docker/:/var/run/docker/
+      - /sys/class/net/:/sys/class/net/
+      - /lib/modules:/lib/modules
+      - /sbin/modprobe:/sbin/modprobe
+      - /usr/lib/tc:/usr/lib/tc
+    privileged: true
+    cap_add:
+      - ALL
+    depends_on:
+      - cadvisor
+      - controller
+      - consul
+    ports:
+      - 5500:5500
+    environment:
+      CONTROLLER_IP: ${MANAGER_IP}
+      HOST_IP: ${HOST_IP}
+      CPU_FREQ: ${CPU_FREQ}
+      NAMESPACE_PATH: ${NAMESPACE_PATH}
+      SNIFFING_PERIODICITY: ${SNIFFING_PERIODICITY}
+      CONNECTOR: ${CONNECTOR}
+      MANAGER_IP: ${MANAGER_IP}
+      MANAGER_NAME: ${MANAGER_NAME}
+    networks:
+      - fogify_net
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - 9090:8080
+    expose:
+      - 8080
+      - 9090
+    networks:
+      - fogify_net
+  spark-master:
+    image: andreper/spark-master:3.0.0
+    ports:
+      - 8080:8080
+      - 7077:7077
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_LOCAL_HOSTNAME=spark-master
+    volumes:
+      - ${DATA_FOLDER}:/data
+    networks:
+      - ether_net
+networks:
+  ether_net:
+    external: true
+  fogify_net:
