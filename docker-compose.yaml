@@ -21,7 +21,7 @@ services:
       - fogify_net
     user: root
   controller:
-    image: fogify:test # New fogify version but in testing mode
+    image: fogemulator/fogify:test # New fogify version but in testing mode
     entrypoint: [ "python", "/code/fogify/main.py", "--controller"]
     # [ "python", "/code/fogify/main.py", "--controller"] -> Production stack | [ "sh", "./controller-entrypoint.sh"] -> Development stack
     volumes:
@@ -72,7 +72,7 @@ services:
     networks:
       - fogify_net
   agent:
-    image: fogify:test # New fogify version but in testing mode
+    image: fogemulator/fogify:test # New fogify version but in testing mode
     entrypoint: [ "python", "/code/fogify/main.py", "--agent", "--agent-ip", "${HOST_IP}"]
     # [ "sh", "./agent-entrypoint.sh"] -> Production stack | [ "python", "/code/fogify/main.py", "--agent", "--agent-ip", "${HOST_IP}"] -> Development stack
     extra_hosts:
