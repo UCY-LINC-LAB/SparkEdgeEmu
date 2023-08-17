@@ -1,5 +1,5 @@
 # SparkEdgeEmu
-*Interactive Performance Evaluation of Distributed Analytic Queries via Edge Emulation*
+*An Emulation Framework for Edge-enabled Apache Spark Deployments*
 
 Edge Computing is promoted as a stable and efficient solution for IoT data processing and analytics. 
 With Big Data Distributed Engines to be deployed on Edge infrastructures, data scientists seek solutions to evaluate the performance of their analytics queries. 
