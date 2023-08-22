@@ -10,10 +10,10 @@ SparkEdgeEmu provides: (i) parameterizable template-based use-cases for Edge inf
 
 ## Installation
 
-Before starting the emulation, users need to create a docker network, namely `ether_net`, by executing the following command:
+Before starting the emulation, users need to create a docker network, namely `edge_net`, by executing the following command:
 
 ```shell script
-docker network create ether_net
+docker network create edge_net
 ```
 
 Then, users have to introduce some initial emulation parameters in `.env` file. An example of such parameters exists at `.env.example` file.

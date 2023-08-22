@@ -58,11 +58,12 @@ def template_creation(topology: Topology, controller_url: str = "http://contorll
           - SPARK_LOCAL_HOSTNAME=$workername
         volumes:
           - /data:/data
+        command: $command
     """
 
     for node in topology.get_nodes():
         res += Template(worker_template).substitute(workername=str(node), cores=node.capacity.cpus,
-            memory=f"{int(node.capacity.memory.real * 1e-6)}m")
+            memory=f"{int(node.capacity.memory.real * 1e-6)}m", command="""sh -c "sleep 20 && bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 >> logs/spark-worker.out" """)
 
     with open(filename, "w") as f:
         f.write(res)
@@ -88,7 +89,7 @@ def topology_to_fogify(topology: Topology, fogify: FogifySDK, placement: Placeme
     # cloud properties
     cloud_latency = 100
     cloud_bandwidth = 100
-    fogify.add_bidirectional_network("ether_net", bidirectional={'latency': {'delay': f'{cloud_latency}ms', },
+    fogify.add_bidirectional_network("edge_net", bidirectional={'latency': {'delay': f'{cloud_latency}ms', },
         'bandwidth': f'{cloud_bandwidth}Mbps'
 
         })  # Maybe we need to describe the general network characteristics
@@ -99,12 +100,12 @@ def topology_to_fogify(topology: Topology, fogify: FogifySDK, placement: Placeme
                     j) == Node and n != j and n._name in placement.get_nodes() and j._name in placement.get_nodes():  # introduce link connection between compute nodes
                 bandwidth = min([k.bandwidth for k in topology.route(n, j).hops])
                 latency = round(float(topology.route(n, j).rtt / 2), 2)
-                fogify.add_link("ether_net", from_node=n._name, to_node=j._name, bidirectional=False, parameters={
+                fogify.add_link("edge_net", from_node=n._name, to_node=j._name, bidirectional=False, parameters={
                     'properties': {'latency': {'delay': f'{latency}ms', }, 'bandwidth': f'{bandwidth}Mbps'}})
     for node_name in placement.topology:
         fogify.add_topology_node(str(node_name), str(placement.topology[node_name]),
             # How can we introduce services in ether?
-            str(node_name), networks=["ether_net"])
+            str(node_name), networks=["edge_net"])
 
     return fogify
 

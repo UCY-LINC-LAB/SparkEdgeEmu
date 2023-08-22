@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
   ui:
-    image: sparkfog-lab
+    image: fogemulator/sparkedgeemu
     build: .
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -17,8 +17,7 @@ services:
       - "JUPYTER_ENABLE_LAB=yes"
       - "GRANT_SUDO=yes"
     networks:
-      - ether_net
-      - fogify_net
+      - edge_net
     user: root
   controller:
     image: fogemulator/fogify:test # New fogify version but in testing mode
@@ -43,8 +42,9 @@ services:
       CONNECTOR: ${CONNECTOR}
       MANAGER_IP: ${MANAGER_IP}
       MANAGER_NAME: ${MANAGER_NAME}
+      XTABLES_LIBDIR: /usr/lib/iptables
     networks:
-      - fogify_net
+      - edge_net
   prometheus:
     image: prom/prometheus:latest
     volumes:
@@ -56,7 +56,7 @@ services:
     ports:
       - "9091:9090"
     networks:
-      - fogify_net
+      - edge_net
   consul:
     image: consul
     ports:
@@ -70,7 +70,7 @@ services:
       SERVICE_IGNORE: 'true'
       CONSUL_SVC_ADDR_AUTO: "true"
     networks:
-      - fogify_net
+      - edge_net
   agent:
     image: fogemulator/fogify:test # New fogify version but in testing mode
     entrypoint: [ "python", "/code/fogify/main.py", "--agent", "--agent-ip", "${HOST_IP}"]
@@ -104,10 +104,11 @@ services:
       CONNECTOR: ${CONNECTOR}
       MANAGER_IP: ${MANAGER_IP}
       MANAGER_NAME: ${MANAGER_NAME}
+      XTABLES_LIBDIR: /usr/lib/iptables
     networks:
-      - fogify_net
+      - edge_net
   cadvisor:
-    image: gcr.io/google-containers/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:latest
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -117,10 +118,9 @@ services:
     ports:
       - 9090:8080
     expose:
-      - 8080
       - 9090
     networks:
-      - fogify_net
+      - edge_net
   spark-master:
     image: andreper/spark-master:3.0.0
     ports:
@@ -132,8 +132,8 @@ services:
     volumes:
       - ${DATA_FOLDER}:/data
     networks:
-      - ether_net
+      - edge_net
+
 networks:
-  ether_net:
+  edge_net:
     external: true
-  fogify_net:
